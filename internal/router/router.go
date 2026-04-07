@@ -12,7 +12,11 @@ func Setup() *gin.Engine {
 	cfg := config.Load()
 
 	r := gin.Default()
-
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		c.Next()
+	})
+	
 	// CORS middleware
 	r.Use(middleware.CORS(cfg))
 
