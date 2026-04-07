@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: go_backend_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: go_backend
+    ports:
+      - "5434:5434"  # Хост:5434 → Контейнер:5434
+    command: -p 5434  # Запускаем PostgreSQL на порту 5434 внутри контейнера
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -p 5434"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  app:
+    build: .
+    container_name: go_backend_app
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres      # Имя сервиса внутри Docker сети
+      DB_PORT: 5434          # Порт 5434 везде
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: go_backend
+      SERVER_PORT: 3000
+      CORS_ORIGIN_SITE: http://localhost:5173
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
+
+# ------------ Запуск: docker-compose up -d
+# ------------ Подключение\: docker exec -it tasks_postgres psql -U taskuser -d tasksdb -p 5433
